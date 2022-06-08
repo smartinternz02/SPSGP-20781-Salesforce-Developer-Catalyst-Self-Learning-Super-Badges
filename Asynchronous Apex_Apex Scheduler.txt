@@ -1,0 +1,45 @@
+//Apex Scheduler
+
+global class DailyLeadProcessor implements Schedulable {
+    global void execute(Schedulablecontext ctx){
+        List<lead> leadstoupdate = new List<lead>();
+        List<Lead> leads = [Select id from Lead Where LeadSource = NULL Limit 200];
+         
+        for(Lead l:leads){
+            l.LeadSource = 'Dreamforce';  
+            leadstoupdate.add(l);
+        }
+        update leadstoupdate;
+    }   
+
+}
+*************************************************************************************
+
+//Test Class
+
+@isTest
+private class DailyLeadProcessorTest {
+    
+    public static String CRON_EXP = '0 0 0 15 5 ? 2024';
+    static testmethod void testscheduledJob(){
+        List<Lead> leads = new List<lead>();
+        for(Integer i=0; i<200; i++){
+            lead l = new Lead(
+                 FirstName = 'First' + i,
+                 LastNAme = 'LastName',
+                 Company = 'The Inc'
+            );
+            leads.add(l);
+        }
+        insert leads;
+        
+        Test.startTest();
+        
+        String jobId = System.schedule('ScheduledApexTest',CRON_EXP,new DailyLeadprocessor());
+        Test.stopTest();
+        List<Lead> checkleads = new List<Lead>();
+        checkleads = [select Id from Lead Where LeadSource = 'Dreamforce' and Company='The Inc'];
+        
+        system.assertEquals(200, checkleads.size(), 'Leads were not created');
+    }
+}
